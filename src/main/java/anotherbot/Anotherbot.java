@@ -1,6 +1,7 @@
 /* Update History: Build Name, Date
  *                 "Ok seems reasonable", May 20th, 2014. 7pm.
  *                 "Jesus christ what", May 27th, ~5pm
+ *                 "Toothpick Skyscraper", May 29th ~5pm
  * Current functionality:
  * -creates and reads settings from a config file
  * -connects to a server and channel
@@ -50,10 +51,10 @@ public class Anotherbot extends PircBot {
     // this is the constructor to be used when a valid cfg file already exists
     public Anotherbot(String server, String channel, String nick) {
         this.setVerbose(true);
-        dictionary = new Dictionary("dictionary.txt");
         if (Util.fileExists(dictionary.getFilename())) {
             try {
-                keys = new LinkedHashSet<String>(Util.getFileContents(dictionary.getFilename()));
+                keys = new LinkedHashSet<String>(
+                        Util.getFileContents(dictionary.getFilename()));
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -61,7 +62,9 @@ public class Anotherbot extends PircBot {
             }
         } else {
             keys = new LinkedHashSet<String>();
+            dictionary = new Dictionary("dictionary.txt");
         }
+
         settings = new UserCfg(nick, server, channel);
         this.setName(loadName(settings)); // for the sake of consistency, load
                                           // this from the cfg file and dont
@@ -70,6 +73,7 @@ public class Anotherbot extends PircBot {
 
     // constructor for using offline mode
     public Anotherbot(boolean offlineMode) {
+        this.setVerbose(true);
         if (offlineMode) {
             keys = new LinkedHashSet<String>();
             String message;
@@ -80,7 +84,7 @@ public class Anotherbot extends PircBot {
             while (!(message = keyboard.nextLine()).equals("q")) {
                 System.out.println("You: " + message);
                 replyMessage = buildReply(message);
-                System.out.println("anotherbot: "+replyMessage);
+                System.out.println("anotherbot: " + replyMessage);
             }
 
         } else {
@@ -93,7 +97,8 @@ public class Anotherbot extends PircBot {
     public void onMessage(String channel, String sender, String login,
             String hostname, String message) {
         String replyMessage = buildReply(message);
-        if (replyMessage.equals(null)) return;
+        if (replyMessage.equals(null))
+            return;
         sendMessage(channel, replyMessage);
     }
 
@@ -102,12 +107,14 @@ public class Anotherbot extends PircBot {
         String randomWord = null;
         processMessage(message);
         int numWords = keys.size();
-        if (numWords==0) return null;
+        if (numWords == 0)
+            return null;
         int item = new Random().nextInt(numWords);
         int i = 0;
         for (String element : keys) {
             if (i == item) {
                 randomWord = element;
+                break;
             }
             i++;
         }
@@ -156,16 +163,26 @@ public class Anotherbot extends PircBot {
         // get each word, or at least what we think is a word, in the line
         String[] splitWords = message.trim().split(" +");
         for (int size = splitWords.length, i = 0; i < size; i++) {
-            if (splitWords[i].contains(" +")) continue;
-            word = splitWords[i].trim().replaceAll("[^a-zA-Z]", "").toLowerCase();
+            if (splitWords[i].equals("") || splitWords[i].contains("[^a-zA-Z]"))
+                continue;
+            word = splitWords[i].trim().replaceAll("[^a-zA-Z]", "")
+                    .toLowerCase();
+            if (word.equals(""))
+                continue; // when we do replaceAll("[^a-zA-Z]", "") and it's
+                          // just garbage text like a semicolon it will still be
+                          // added as a blank character, and we dont want that
             currentWords.add(word);
             keys.add(word);
             if (!currentWords.isEmpty()) {
-            System.out.println("Words: " + currentWords.get(i)); // for testing
+                System.out.println("Words: " + currentWords.get(i)); // for
+                                                                     // testing
             }
         }
         for (String element : keys) {
-            if (element.contains(" +")) { keys.remove(element); continue; }
+            if (element.contains("\\s+")) {
+                keys.remove(element);
+                continue;
+            }
             System.out.println("Keys: " + element); // for testing
         }
         dictionary.save(keys);
