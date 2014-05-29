@@ -30,8 +30,6 @@ import org.jibble.pircbot.PircBot;
 public class Anotherbot extends PircBot {
     UserCfg settings;
     Dictionary dictionary;
-    ArrayList<String> words; // a 'raw' list of every word given to us, no
-                             // concern for duplicates. may not be needed.
     ArrayList<String> currentWords;
     Set<String> keys; // we are using this to store each individual word we
                       // know about, which we will use as a key pointing to a
@@ -75,7 +73,6 @@ public class Anotherbot extends PircBot {
         if (offlineMode) {
             keys = new LinkedHashSet<String>();
             String message;
-            // Random randInt = new Random();
             String replyMessage;
             dictionary = new Dictionary("dictionary.txt");
             Scanner keyboard = new Scanner(System.in);
@@ -85,13 +82,6 @@ public class Anotherbot extends PircBot {
                 replyMessage = buildReply(message);
                 System.out.println("anotherbot: "+replyMessage);
             }
-
-            // for (String randomWord : keys) {
-
-            // }
-            // if (keys.contains()) {
-            // replyMessage = keys.get(randInt.nextInt(words.size()));
-            // System.out.println("anotherbot: " + replyMessage);
 
         } else {
             return;
@@ -103,6 +93,7 @@ public class Anotherbot extends PircBot {
     public void onMessage(String channel, String sender, String login,
             String hostname, String message) {
         String replyMessage = buildReply(message);
+        if (replyMessage.equals(null)) return;
         sendMessage(channel, replyMessage);
     }
 
@@ -110,10 +101,11 @@ public class Anotherbot extends PircBot {
         String replyMessage;
         String randomWord = null;
         processMessage(message);
-        int messageSize = currentWords.size();
-        int item = new Random().nextInt(messageSize);
+        int numWords = keys.size();
+        if (numWords==0) return null;
+        int item = new Random().nextInt(numWords);
         int i = 0;
-        for (String element : currentWords) {
+        for (String element : keys) {
             if (i == item) {
                 randomWord = element;
             }
@@ -160,57 +152,22 @@ public class Anotherbot extends PircBot {
     // and get the data we are looking for, which is words.
     private void processMessage(String message) {
         currentWords = new ArrayList<String>();
-        String word = "";
- /*       ArrayList<String> currentLines = new ArrayList<String>(); // currentLines
-                                                                  // and line
-                                                                  // might need
-                                                                  // to be
-                                                                  // removed for
-                                                                  // lack of any
-                                                                  // real use
-        String line;
-
-        String[] splitLines = message.split("\\.\\s"); // assume that each
-                                                       // period followed by a
-                                                       // space is a new
-                                                       // line/sentence
-        for (int size = splitLines.length, i = 0; i < size; i++) {
-            line = splitLines[i].replaceAll("[^a-zA-Z ]", "").toLowerCase(); // regex,removes
-                                                                             // anything
-                                                                             // that
-                                                                             // isn't
-                                                                             // a
-                                                                             // letter
-            currentLines.add(line);
-            System.out.println("Lines: " + currentLines.get(i)); // for testing
-        }
-*/
+        String word;
         // get each word, or at least what we think is a word, in the line
-        String[] splitWords = message.split("\\s");
+        String[] splitWords = message.trim().split(" +");
         for (int size = splitWords.length, i = 0; i < size; i++) {
-        	word=word.replace(" ","");
-            word = splitWords[i].replaceAll("[^a-zA-Z]", "").toLowerCase();
+            if (splitWords[i].contains(" +")) continue;
+            word = splitWords[i].trim().replaceAll("[^a-zA-Z]", "").toLowerCase();
             currentWords.add(word);
+            keys.add(word);
+            if (!currentWords.isEmpty()) {
             System.out.println("Words: " + currentWords.get(i)); // for testing
+            }
         }
-
-        words = currentWords;
-        for (String add : currentWords) {
-            keys.add(add);
-        }
-                                                 // A linked hash set is a
-                                                 // type of set that orders
-                                                 // elements based on their
-                                                 // insertion order. this
-                                                 // should make writing to
-                                                 // the dictionary a bit more
-                                                 // sane than using a HashSet
-                                                 // (which doesn't care too
-                                                 // much about the order,
-                                                 // albeit it performs the
-                                                 // best)
-        for (String element : keys)
+        for (String element : keys) {
+            if (element.contains(" +")) { keys.remove(element); continue; }
             System.out.println("Keys: " + element); // for testing
+        }
         dictionary.save(keys);
     }
 }
