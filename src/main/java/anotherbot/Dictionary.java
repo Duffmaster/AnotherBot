@@ -48,30 +48,38 @@ public class Dictionary {
 
     public void saveTest(String word, String nextWord)
             throws FileNotFoundException, IOException {
-        String[] leftSide =Util.getFileContents(this.filename).toString().split("\n");
+    	String[]  lines = null, leftSide=new String[Util.getFileContents(this.filename).size()];
+    	for (String element :  Util.getFileContents(this.filename)){
+    		lines=element.split("\n");
+    		System.out.println("1: "+element);
+    	}
+    	//.split("\n");
+        
+        //System.out.println(leftSide.toString());
         int i=0;
         String[] split;
-        for (String element : leftSide) {
+        for (String element : lines) {
             split=element.split(":");
-            leftSide[i]=split[0];
+            leftSide[i]=split[i];
+            System.out.println("2: "+leftSide[i]);
             i++;
         }
-        System.out.println(leftSide[0]);
+        
         int findWord;
         // ArrayList<String> linesToWrite = new ArrayList<String>(lines);
-     //   Iterator<String> it = contents.iterator();
+     // Iterator<String> it = contents.iterator();
         findWord = leftSide[0].lastIndexOf(word);
         if (findWord == -1) {
             try (PrintWriter out = new PrintWriter(new BufferedWriter(
                     new FileWriter(filename, true)))) {
                 out.println(word+":"+nextWord);
                 //out.print(": ");
-       //         while (!it.next().equals(word)) {
-        //            out.println(it.next()); // this will append anything to the
+       // while (!it.next().equals(word)) {
+        // out.println(it.next()); // this will append anything to the
                                             // end
                     // of the file, in other words it wont
                     // overwrite the file
-       //         }
+       // }
             } catch (IOException e) {
                 System.err.println(e);
             }

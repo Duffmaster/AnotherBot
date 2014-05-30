@@ -1,17 +1,17 @@
 /* Update History: Build Name, Date
- *                 "Ok seems reasonable", May 20th, 2014. 7pm.
- *                 "Jesus christ what", May 27th, ~5pm
- *                 "Toothpick Skyscraper", May 29th ~5pm
- * Current functionality:
- * -creates and reads settings from a config file
- * -connects to a server and channel
- * -retrieves and stores sentences and words in messages sent to the channel
- * -replies to messages with a random word previously learned
- * -arbitrarily writes processed words to dictionary
- * TODO:
- * -read and write to/from dictionary in a way that we can remember word frequency etc across different runs
- * -Markov chain (map relationships between words and build replies using that, building around a randomly chosen word in a message sent to the server)
- */
+* "Ok seems reasonable", May 20th, 2014. 7pm.
+* "Jesus christ what", May 27th, ~5pm
+* "Toothpick Skyscraper", May 29th ~5pm
+* Current functionality:
+* -creates and reads settings from a config file
+* -connects to a server and channel
+* -retrieves and stores sentences and words in messages sent to the channel
+* -replies to messages with a random word previously learned
+* -arbitrarily writes processed words to dictionary
+* TODO:
+* -read and write to/from dictionary in a way that we can remember word frequency etc across different runs
+* -Markov chain (map relationships between words and build replies using that, building around a randomly chosen word in a message sent to the server)
+*/
 
 package anotherbot;
 
@@ -193,7 +193,7 @@ public class Anotherbot extends PircBot {
                 
             }
             try {
-                dictionary.saveTest(lastElement,  element);
+                dictionary.saveTest(lastElement, element);
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -204,12 +204,13 @@ public class Anotherbot extends PircBot {
             lastElement=element;
             System.out.println("Keys: " + element); // for testing
         }
-/*        try {
-            dictionary.save(keys);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } */
+/* try {
+dictionary.save(keys);
+} catch (FileNotFoundException e) {
+e.printStackTrace();
+} catch (IOException e) {
+e.printStackTrace();
+} */
     }
 }
+
