@@ -18,6 +18,7 @@ package anotherbot;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Random;
@@ -29,14 +30,15 @@ import org.jibble.pircbot.PircBot;
 
 //From this class anotherbot will apply changes to himself as defined by the configuration file and perform actions that are to be called by anotherbotMain
 public class Anotherbot extends PircBot {
-    UserCfg settings;
-    Dictionary dictionary;
-    ArrayList<String> currentWords;
-    Set<String> keys; // we are using this to store each individual word we
+    private UserCfg settings;
+    private Dictionary dictionary;
+    private ArrayList<String> currentWords;
+    //private ArrayList<String> associatedWords;
+    private Set<String> keys; // we are using this to store each individual word we
                       // know about, which we will use as a key pointing to a
                       // list of possible next words. sets cannot contain
                       // duplicate entries.
-    Map<String, ArrayList<String>> wordsMap;
+    private Map<String, ArrayList<String>> wordsMap;
 
     // basic constructor that writes a new config file with default values
     public Anotherbot() {
@@ -90,6 +92,10 @@ public class Anotherbot extends PircBot {
         } else {
             return;
         }
+    }
+    
+    public void associateWords() {
+        
     }
 
     // what to do when a message from somebody is sent to the channel
@@ -159,6 +165,7 @@ public class Anotherbot extends PircBot {
     // and get the data we are looking for, which is words.
     private void processMessage(String message) {
         currentWords = new ArrayList<String>();
+        wordsMap=new HashMap<String, ArrayList<String>>();
         String word;
         // get each word, or at least what we think is a word, in the line
         String[] splitWords = message.trim().split(" +");
@@ -178,13 +185,31 @@ public class Anotherbot extends PircBot {
                                                                      // testing
             }
         }
+        String lastElement="";
         for (String element : keys) {
             if (element.contains("\\s+")) {
                 keys.remove(element);
                 continue;
+                
             }
+            try {
+                dictionary.saveTest(lastElement,  element);
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            lastElement=element;
             System.out.println("Keys: " + element); // for testing
         }
-        dictionary.save(keys);
+/*        try {
+            dictionary.save(keys);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } */
     }
 }
