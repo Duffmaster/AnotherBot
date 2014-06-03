@@ -30,204 +30,205 @@ import org.jibble.pircbot.PircBot;
 
 //From this class anotherbot will apply changes to himself as defined by the configuration file and perform actions that are to be called by anotherbotMain
 public class Anotherbot extends PircBot {
-    private UserCfg settings;
-    private Dictionary dictionary;
-    private ArrayList<String> currentWords;
-    // private ArrayList<String> associatedWords;
-    private Set<String> keys; // we are using this to store each individual word
-                              // we
-    // know about, which we will use as a key pointing to a
-    // list of possible next words. sets cannot contain
-    // duplicate entries.
-    private Map<String, ArrayList<String>> wordsMap;
+	private UserCfg settings;
+	private Dictionary dictionary;
+	private ArrayList<String> currentWords;
+	// private ArrayList<String> associatedWords;
+	private Set<String> keys; // we are using this to store each individual word
+	// we
+	// know about, which we will use as a key pointing to a
+	// list of possible next words. sets cannot contain
+	// duplicate entries.
+	private Map<String, ArrayList<String>> wordsMap;
 
-    // basic constructor that writes a new config file with default values
-    public Anotherbot() {
-        this.setVerbose(true); // what kind of info we get in the console.
-        keys = new LinkedHashSet<String>();
-        settings = new UserCfg("anotherbotForever", "irc.rizon.net",
-                "#thesewingcircle");
-        dictionary = new Dictionary("dictionary.txt");
-        this.setName(loadName(settings));
-    }
+	// basic constructor that writes a new config file with default values
+	public Anotherbot() {
+		this.setVerbose(true); // what kind of info we get in the console.
+		keys = new LinkedHashSet<String>();
+		settings = new UserCfg("anotherbotForever", "irc.rizon.net",
+				"#thesewingcircle");
+		dictionary = new Dictionary("dictionary.txt");
+		this.setName(loadName(settings));
+	}
 
-    // this is the constructor to be used when a valid cfg file already exists
-    public Anotherbot(String server, String channel, String nick) {
-        this.setVerbose(true);
-        dictionary = new Dictionary("dictionary.txt");
-        settings = new UserCfg(nick, server, channel);
-        this.setName(loadName(settings)); // for the sake of consistency, load
-                                          // this from the cfg file and dont
-                                          // take it from nick
-    }
+	// this is the constructor to be used when a valid cfg file already exists
+	public Anotherbot(String server, String channel, String nick) {
+		this.setVerbose(true);
+		dictionary = new Dictionary("dictionary.txt");
+		settings = new UserCfg(nick, server, channel);
+		this.setName(loadName(settings)); // for the sake of consistency, load
+		// this from the cfg file and dont
+		// take it from nick
+	}
 
-    // constructor for using offline mode
-    public Anotherbot(boolean offlineMode) {
-        this.setVerbose(true);
-        dictionary = new Dictionary("dictionary.txt");
-        if (offlineMode) {
-            loadExistingKeys();
-            String message;
-            String replyMessage;
-            Scanner keyboard = new Scanner(System.in);
-            System.out.println("Offline mode enabled. q to quit.");
-            while (!(message = keyboard.nextLine()).equals("q")) {
-                System.out.println("You: " + message);
-                replyMessage = buildReply(message);
-                System.out.println("anotherbot: " + replyMessage);
-            }
+	// constructor for using offline mode
+	public Anotherbot(boolean offlineMode) {
+		this.setVerbose(true);
+		dictionary = new Dictionary("dictionary.txt");
+		if (offlineMode) {
+			loadExistingKeys();
+			String message;
+			String replyMessage;
+			Scanner keyboard = new Scanner(System.in);
+			System.out.println("Offline mode enabled. q to quit.");
+			while (!(message = keyboard.nextLine()).equals("q")) {
+				System.out.println("You: " + message);
+				replyMessage = buildReply(message);
+				System.out.println("anotherbot: " + replyMessage);
+			}
 
-        } else {
-            return;
-        }
-    }
+		} else {
+			return;
+		}
+	}
 
-    // futile attempt to clean the code up. checks for existing dictionary and
-    // sets keys equal to the keys in the dictionary
-    private void loadExistingKeys() {
-        if (Util.fileExists(dictionary.getFilename())) {
-            try {
-                keys = new LinkedHashSet<String>(
-                        Util.getFileContents(dictionary.getFilename()));
-                        //TODO
-                        //USE THE METHOD "GETLEFTSIDE" WHEN IT FUCKING WORKS WHICH IS PROBABLY NEVER
-                System.out.println("Keys loaded from existing dictionary: "
-                        + keys.toString()); // seems to work
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            keys = new LinkedHashSet<String>();
-        }
-    }
+	// futile attempt to clean the code up. checks for existing dictionary and
+	// sets keys equal to the keys in the dictionary
+	private void loadExistingKeys() {
+		if (Util.fileExists(dictionary.getFilename())) {
+			try {
+				keys = new LinkedHashSet<String>(dictionary.loadLeftSide());
+				System.out.println("Keys loaded from existing dictionary: "
+						+ keys.toString()); // seems to work
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			keys = new LinkedHashSet<String>();
+		}
+	}
 
-    public void associateWords() {
+	public void associateWords() {
 
-    }
+	}
 
-    // what to do when a message from somebody is sent to the channel
-    @Override
-    public void onMessage(String channel, String sender, String login,
-            String hostname, String message) {
-        String replyMessage = buildReply(message);
-        if (replyMessage.equals(null))
-            return;
-        sendMessage(channel, replyMessage);
-    }
+	// what to do when a message from somebody is sent to the channel
+	@Override
+	public void onMessage(String channel, String sender, String login,
+			String hostname, String message) {
+		String replyMessage = buildReply(message);
+		if (replyMessage.equals(null))
+			return;
+		sendMessage(channel, replyMessage);
+	}
 
-    private String buildReply(String message) {
-        String replyMessage;
-        String randomWord = null;
-        processMessage(message);
-        int numWords = keys.size();
-        if (numWords == 0)
-            return null;
-        int item = new Random().nextInt(numWords);
-        int i = 0;
-        for (String element : keys) {
-            if (i == item) {
-                randomWord = element;
-                break;
-            }
-            i++;
-        }
-        return randomWord;
+	private String buildReply(String message) {
+		String replyMessage;
+		String randomWord = null;
+		processMessage(message);
+		int numWords = keys.size();
+		if (numWords == 0)
+			return null;
+		int item = new Random().nextInt(numWords);
+		int i = 0;
+		for (String element : keys) {
+			if (i == item) {
+				randomWord = element;
+				break;
+			}
+			i++;
+		}
+		return randomWord;
 
-    }
+	}
 
-    // what the main method should call to get the bot going
-    public void beginServerConnection() {
-        try {
-            this.connect(settings.getField(1));
-        } catch (IOException | IrcException e) {
-            System.out.println(e);
-        }
-    }
+	// what the main method should call to get the bot going
+	public void beginServerConnection() {
+		try {
+			this.connect(settings.getField(1));
+		} catch (IOException | IrcException e) {
+			System.out.println(e);
+		}
+	}
 
-    // what to do after successfully connecting to the server
-    // currently, join the channel defined in the cfg file after connecting
-    @Override
-    public void onConnect() {
-        try {
-            this.joinChannel(settings.getField(2));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+	// what to do after successfully connecting to the server
+	// currently, join the channel defined in the cfg file after connecting
+	@Override
+	public void onConnect() {
+		try {
+			this.joinChannel(settings.getField(2));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
-    // the main reason for using loadName is to avoid having the constructor
-    // handle an error not relevant to it (getField throws
-    // FileNotFoundException) because it's making a new file
-    private String loadName(UserCfg settings) {
-        String name = null;
-        try {
-            name = settings.getField(0);
-        } catch (IOException n) {
-            System.out.println(n);
-        }
-        return name;
-    }
+	// the main reason for using loadName is to avoid having the constructor
+	// handle an error not relevant to it (getField throws
+	// FileNotFoundException) because it's making a new file
+	private String loadName(UserCfg settings) {
+		String name = null;
+		try {
+			name = settings.getField(0);
+		} catch (IOException n) {
+			System.out.println(n);
+		}
+		return name;
+	}
 
-    // when a message is sent to the channel, we have to pick out the garbage
-    // and get the data we are looking for, which is words.
-    private void processMessage(String message) {
-        currentWords = new ArrayList<String>();
-        wordsMap = new HashMap<String, ArrayList<String>>();
-        String word;
-        // get each word, or at least what we think is a word, in the line
-        String[] getWords = message.trim().split("\\s+");
-        for (int size = getWords.length, i = 0; i < size; i++) {
-            // if it's not a letter ignore it
-            if (getWords[i].equals("") || getWords[i].contains("[^a-zA-Z]")) {
-                continue;
-            }
-            // getting the word
-            word = getWords[i].trim().replaceAll("[^a-zA-Z]", "").toLowerCase();
-            // when we do replaceAll("[^a-zA-Z]", "") and it's just garbage text
-            // like a semicolon it will still be added as a blank character, and
-            // we dont want that
-            if (word.equals("")) {
-                continue;
-            }
-            // add it as one of the words in the current message
-            currentWords.add(word);
-            // add it to the list of keys, it's a set so there wont be
-            // duplicates
-            keys.add(word);
-            if (!currentWords.isEmpty()) {
-                System.out.println("Words: " + currentWords.get(i));
-            }
-        }
-        String lastElement = "";
-        for (String currentElement : keys) { // go through each element in our
-                                             // list of keys
-            if (currentElement.contains("\\s+")) {// remove any garbage that
-                                                  // slips through
-                keys.remove(currentElement);
-                continue;
-            }
-            System.out.println("Keys: " + currentElement);
-        }
-        try {
-            dictionary.saveOld(keys);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        /*
-         * if (!lastElement.equals("")) {
-         * dictionary.saveLeftSide(currentElement); } else {
-         * dictionary.saveLeftSide(currentElement); try {
-         * //dictionary.saveRightSide(lastElement, currentElement);
-         * dictionary.saveOld(lastElement, currentElement); } catch
-         * (FileNotFoundException e) { // TODO Auto-generated catch block
-         * e.printStackTrace(); } catch (IOException e) { // TODO Auto-generated
-         * catch block e.printStackTrace(); } //}
-         * 
-         * lastElement = currentElement; System.out.println("Keys: " +
-         * currentElement + " last element: " + lastElement); // for testing
-         */
-    }
+	// when a message is sent to the channel, we have to pick out the garbage
+	// and get the data we are looking for, which is words.
+	private void processMessage(String message) {
+		currentWords = new ArrayList<String>();
+		Map<String, String> associatedWord = new HashMap<String, String>();
+		String word;
+		String wordBefore="";
+		// get each word, or at least what we think is a word, in the line
+		String[] getWords = message.trim().split("\\s+");
+		for (int size = getWords.length, i = 0; i < size; i++) {
+			// if it's not a letter ignore it
+			if (getWords[i].equals("") || getWords[i].contains("[^a-zA-Z]")) {
+				continue;
+			}
+			// getting the word
+			word = getWords[i].trim().replaceAll("[^a-zA-Z]", "").toLowerCase();
+			// when we do replaceAll("[^a-zA-Z]", "") and it's just garbage text
+			// like a semicolon it will still be added as a blank character, and
+			// we dont want that
+			if (word.equals("")) {
+				continue;
+			}
+			// add it as one of the words in the current message
+			currentWords.add(word);
+			// add it to the list of keys, it's a set so there wont be
+			// duplicates
+			keys.add(word);
+			if (wordBefore.equals("")) {
+				dictionary.saveLeftSide(keys);
+			}
+			
+			if (!currentWords.isEmpty()) {
+				System.out.println("Words: " + currentWords.get(i));
+			}
+			wordBefore=word;
+		}
+		String lastElement = "";
+		for (String currentElement : currentWords) { // go through each element in our
+			// list of keys
+			if (!lastElement.equals("")) {
+				dictionary.saveLeftSide(currentElement);
+			} else {
+				dictionary.saveLeftSide(currentElement);
+				try {
+					dictionary.saveRightSide(lastElement, currentElement);
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+				System.out.println("Keys: " + currentElement
+						+ " last element: " + lastElement); // for testing
+			}
+			lastElement = currentElement;
+			System.out.println("Keys: " + currentElement);
+		}
+	/*	if (currentElement.contains("\\s+")) {// remove any garbage that
+			// slips through
+			keys.remove(currentElement);
+			continue;
+		} */
+	}
+
 }
