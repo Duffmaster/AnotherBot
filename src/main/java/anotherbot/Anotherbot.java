@@ -89,6 +89,8 @@ public class Anotherbot extends PircBot {
             try {
                 keys = new LinkedHashSet<String>(
                         Util.getFileContents(dictionary.getFilename()));
+                        //TODO
+                        //USE THE METHOD "GETLEFTSIDE" WHEN IT FUCKING WORKS WHICH IS PROBABLY NEVER
                 System.out.println("Keys loaded from existing dictionary: "
                         + keys.toString()); // seems to work
             } catch (FileNotFoundException e) {
