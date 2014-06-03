@@ -75,14 +75,15 @@ public class Util {
         }
         return content;
     }
-    
-    public void printFileContents(String filename) throws IOException, FileNotFoundException {
-        //ArrayList<String> content = new ArrayList<String>();
+
+    public void printFileContents(String filename) throws IOException,
+            FileNotFoundException {
+        // ArrayList<String> content = new ArrayList<String>();
         try (LineNumberReader reader = new LineNumberReader(new FileReader(
                 filename))) { // why am i using linenumberreader?
             String line = null;
             while ((line = reader.readLine()) != null) {
-                System.out.println(reader.getLineNumber()+" "+line);
+                System.out.println(reader.getLineNumber() + " " + line);
             }
         }
     }

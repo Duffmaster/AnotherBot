@@ -1,17 +1,17 @@
 /* Update History: Build Name, Date
-* "Ok seems reasonable", May 20th, 2014. 7pm.
-* "Jesus christ what", May 27th, ~5pm
-* "Toothpick Skyscraper", May 29th ~5pm
-* Current functionality:
-* -creates and reads settings from a config file
-* -connects to a server and channel
-* -retrieves and stores sentences and words in messages sent to the channel
-* -replies to messages with a random word previously learned
-* -arbitrarily writes processed words to dictionary
-* TODO:
-* -read and write to/from dictionary in a way that we can remember word frequency etc across different runs
-* -Markov chain (map relationships between words and build replies using that, building around a randomly chosen word in a message sent to the server)
-*/
+ * "Ok seems reasonable", May 20th, 2014. 7pm.
+ * "Jesus christ what", May 27th, ~5pm
+ * "Toothpick Skyscraper", May 29th ~5pm
+ * Current functionality:
+ * -creates and reads settings from a config file
+ * -connects to a server and channel
+ * -retrieves and stores sentences and words in messages sent to the channel
+ * -replies to messages with a random word previously learned
+ * -arbitrarily writes processed words to dictionary
+ * TODO:
+ * -read and write to/from dictionary in a way that we can remember word frequency etc across different runs
+ * -Markov chain (map relationships between words and build replies using that, building around a randomly chosen word in a message sent to the server)
+ */
 
 package anotherbot;
 
@@ -33,11 +33,12 @@ public class Anotherbot extends PircBot {
     private UserCfg settings;
     private Dictionary dictionary;
     private ArrayList<String> currentWords;
-    //private ArrayList<String> associatedWords;
-    private Set<String> keys; // we are using this to store each individual word we
-                      // know about, which we will use as a key pointing to a
-                      // list of possible next words. sets cannot contain
-                      // duplicate entries.
+    // private ArrayList<String> associatedWords;
+    private Set<String> keys; // we are using this to store each individual word
+                              // we
+    // know about, which we will use as a key pointing to a
+    // list of possible next words. sets cannot contain
+    // duplicate entries.
     private Map<String, ArrayList<String>> wordsMap;
 
     // basic constructor that writes a new config file with default values
@@ -53,20 +54,7 @@ public class Anotherbot extends PircBot {
     // this is the constructor to be used when a valid cfg file already exists
     public Anotherbot(String server, String channel, String nick) {
         this.setVerbose(true);
-        if (Util.fileExists(dictionary.getFilename())) {
-            try {
-                keys = new LinkedHashSet<String>(
-                        Util.getFileContents(dictionary.getFilename()));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            keys = new LinkedHashSet<String>();
-            dictionary = new Dictionary("dictionary.txt");
-        }
-
+        dictionary = new Dictionary("dictionary.txt");
         settings = new UserCfg(nick, server, channel);
         this.setName(loadName(settings)); // for the sake of consistency, load
                                           // this from the cfg file and dont
@@ -76,11 +64,11 @@ public class Anotherbot extends PircBot {
     // constructor for using offline mode
     public Anotherbot(boolean offlineMode) {
         this.setVerbose(true);
+        dictionary = new Dictionary("dictionary.txt");
         if (offlineMode) {
-            keys = new LinkedHashSet<String>();
+            loadExistingKeys();
             String message;
             String replyMessage;
-            dictionary = new Dictionary("dictionary.txt");
             Scanner keyboard = new Scanner(System.in);
             System.out.println("Offline mode enabled. q to quit.");
             while (!(message = keyboard.nextLine()).equals("q")) {
@@ -93,9 +81,28 @@ public class Anotherbot extends PircBot {
             return;
         }
     }
-    
+
+    // futile attempt to clean the code up. checks for existing dictionary and
+    // sets keys equal to the keys in the dictionary
+    private void loadExistingKeys() {
+        if (Util.fileExists(dictionary.getFilename())) {
+            try {
+                keys = new LinkedHashSet<String>(
+                        Util.getFileContents(dictionary.getFilename()));
+                System.out.println("Keys loaded from existing dictionary: "
+                        + keys.toString()); // seems to work
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            keys = new LinkedHashSet<String>();
+        }
+    }
+
     public void associateWords() {
-        
+
     }
 
     // what to do when a message from somebody is sent to the channel
@@ -165,52 +172,60 @@ public class Anotherbot extends PircBot {
     // and get the data we are looking for, which is words.
     private void processMessage(String message) {
         currentWords = new ArrayList<String>();
-        wordsMap=new HashMap<String, ArrayList<String>>();
+        wordsMap = new HashMap<String, ArrayList<String>>();
         String word;
         // get each word, or at least what we think is a word, in the line
-        String[] splitWords = message.trim().split(" +");
-        for (int size = splitWords.length, i = 0; i < size; i++) {
-            if (splitWords[i].equals("") || splitWords[i].contains("[^a-zA-Z]"))
+        String[] getWords = message.trim().split("\\s+");
+        for (int size = getWords.length, i = 0; i < size; i++) {
+            // if it's not a letter ignore it
+            if (getWords[i].equals("") || getWords[i].contains("[^a-zA-Z]")) {
                 continue;
-            word = splitWords[i].trim().replaceAll("[^a-zA-Z]", "")
-                    .toLowerCase();
-            if (word.equals(""))
-                continue; // when we do replaceAll("[^a-zA-Z]", "") and it's
-                          // just garbage text like a semicolon it will still be
-                          // added as a blank character, and we dont want that
+            }
+            // getting the word
+            word = getWords[i].trim().replaceAll("[^a-zA-Z]", "").toLowerCase();
+            // when we do replaceAll("[^a-zA-Z]", "") and it's just garbage text
+            // like a semicolon it will still be added as a blank character, and
+            // we dont want that
+            if (word.equals("")) {
+                continue;
+            }
+            // add it as one of the words in the current message
             currentWords.add(word);
+            // add it to the list of keys, it's a set so there wont be
+            // duplicates
             keys.add(word);
             if (!currentWords.isEmpty()) {
-                System.out.println("Words: " + currentWords.get(i)); // for
-                                                                     // testing
+                System.out.println("Words: " + currentWords.get(i));
             }
         }
-        String lastElement="";
-        for (String element : keys) {
-            if (element.contains("\\s+")) {
-                keys.remove(element);
+        String lastElement = "";
+        for (String currentElement : keys) { // go through each element in our
+                                             // list of keys
+            if (currentElement.contains("\\s+")) {// remove any garbage that
+                                                  // slips through
+                keys.remove(currentElement);
                 continue;
-                
             }
-            try {
-                dictionary.saveTest(lastElement, element);
-            } catch (FileNotFoundException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            lastElement=element;
-            System.out.println("Keys: " + element); // for testing
+            System.out.println("Keys: " + currentElement);
         }
-/* try {
-dictionary.save(keys);
-} catch (FileNotFoundException e) {
-e.printStackTrace();
-} catch (IOException e) {
-e.printStackTrace();
-} */
+        try {
+            dictionary.saveOld(keys);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        /*
+         * if (!lastElement.equals("")) {
+         * dictionary.saveLeftSide(currentElement); } else {
+         * dictionary.saveLeftSide(currentElement); try {
+         * //dictionary.saveRightSide(lastElement, currentElement);
+         * dictionary.saveOld(lastElement, currentElement); } catch
+         * (FileNotFoundException e) { // TODO Auto-generated catch block
+         * e.printStackTrace(); } catch (IOException e) { // TODO Auto-generated
+         * catch block e.printStackTrace(); } //}
+         * 
+         * lastElement = currentElement; System.out.println("Keys: " +
+         * currentElement + " last element: " + lastElement); // for testing
+         */
     }
 }
-

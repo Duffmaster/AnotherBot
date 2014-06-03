@@ -6,7 +6,8 @@ public class Main {
         Anotherbot another = new Anotherbot(true);
         // String serverToJoin="irc.rizon.net",
         // channelToJoin="#thesewingcircle", nick="anotherbotForever";
-        // anotherbot another = new anotherbot(serverToJoin, channelToJoin, nick);
+        // anotherbot another = new anotherbot(serverToJoin, channelToJoin,
+        // nick);
         // Dictionary test=new Dictionary();
         // another.beginServerConnection();
         // System.out.println(anothercfg.getField(1));
