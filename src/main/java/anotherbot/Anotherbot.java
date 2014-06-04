@@ -1,7 +1,7 @@
 /* Update History: Build Name, Date
- *                 "Ok seems reasonable", May 20th, 2014. 7pm.
- *                 "Jesus christ what", May 27th, ~5pm
- *                 "Toothpick Skyscraper", May 29th ~5pm
+ * "Ok seems reasonable", May 20th, 2014. 7pm.
+ * "Jesus christ what", May 27th, ~5pm
+ * "Toothpick Skyscraper", May 29th ~5pm
  * Current functionality:
  * -creates and reads settings from a config file
  * -connects to a server and channel
@@ -18,6 +18,7 @@ package anotherbot;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Random;
@@ -29,162 +30,179 @@ import org.jibble.pircbot.PircBot;
 
 //From this class anotherbot will apply changes to himself as defined by the configuration file and perform actions that are to be called by anotherbotMain
 public class Anotherbot extends PircBot {
-    UserCfg settings;
-    Dictionary dictionary;
-    ArrayList<String> currentWords;
-    Set<String> keys; // we are using this to store each individual word we
-                      // know about, which we will use as a key pointing to a
-                      // list of possible next words. sets cannot contain
-                      // duplicate entries.
-    Map<String, ArrayList<String>> wordsMap;
+	private UserCfg settings;
+	private Dictionary dictionary;
+	private ArrayList<String> currentWords;
+	// private ArrayList<String> associatedWords;
+	private Set<String> keys; // we are using this to store each individual word
+	// we
+	// know about, which we will use as a key pointing to a
+	// list of possible next words. sets cannot contain
+	// duplicate entries.
+	private Map<String, ArrayList<String>> wordsMap;
 
-    // basic constructor that writes a new config file with default values
-    public Anotherbot() {
-        this.setVerbose(true); // what kind of info we get in the console.
-        keys = new LinkedHashSet<String>();
-        settings = new UserCfg("anotherbotForever", "irc.rizon.net",
-                "#thesewingcircle");
-        dictionary = new Dictionary("dictionary.txt");
-        this.setName(loadName(settings));
-    }
+	// basic constructor that writes a new config file with default values
+	public Anotherbot() throws FileNotFoundException, IOException {
+		this.setVerbose(true); // what kind of info we get in the console.
+		keys = new LinkedHashSet<String>();
+		settings = new UserCfg("anotherbotForever", "irc.rizon.net",
+				"#thesewingcircle");
+		dictionary = new Dictionary("dictionary.txt");
+		this.setName(loadName(settings));
+	}
 
-    // this is the constructor to be used when a valid cfg file already exists
-    public Anotherbot(String server, String channel, String nick) {
-        this.setVerbose(true);
-        if (Util.fileExists(dictionary.getFilename())) {
-            try {
-                keys = new LinkedHashSet<String>(
-                        Util.getFileContents(dictionary.getFilename()));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            keys = new LinkedHashSet<String>();
-            dictionary = new Dictionary("dictionary.txt");
-        }
+	// this is the constructor to be used when a valid cfg file already exists
+	public Anotherbot(String server, String channel, String nick) throws FileNotFoundException, IOException {
+		this.setVerbose(true);
+		dictionary = new Dictionary("dictionary.txt");
+		settings = new UserCfg(nick, server, channel);
+		this.setName(loadName(settings)); // for the sake of consistency, load
+		// this from the cfg file and dont
+		// take it from nick
+	}
 
-        settings = new UserCfg(nick, server, channel);
-        this.setName(loadName(settings)); // for the sake of consistency, load
-                                          // this from the cfg file and dont
-                                          // take it from nick
-    }
+	// constructor for using offline mode
+	public Anotherbot(boolean offlineMode) throws FileNotFoundException, IOException {
+		this.setVerbose(true);
+		dictionary = new Dictionary("dictionary.txt");
+		if (offlineMode) {
+			loadExistingKeys();
+			String message;
+			String replyMessage;
+			Scanner keyboard = new Scanner(System.in);
+			System.out.println("Offline mode enabled. q to quit.");
+			while (!(message = keyboard.nextLine()).equals("q")) {
+				System.out.println("You: " + message);
+				replyMessage = buildReply(message);
+				System.out.println("anotherbot: " + replyMessage);
+			}
+			keyboard.close();
 
-    // constructor for using offline mode
-    public Anotherbot(boolean offlineMode) {
-        this.setVerbose(true);
-        if (offlineMode) {
-            keys = new LinkedHashSet<String>();
-            String message;
-            String replyMessage;
-            dictionary = new Dictionary("dictionary.txt");
-            Scanner keyboard = new Scanner(System.in);
-            System.out.println("Offline mode enabled. q to quit.");
-            while (!(message = keyboard.nextLine()).equals("q")) {
-                System.out.println("You: " + message);
-                replyMessage = buildReply(message);
-                System.out.println("anotherbot: " + replyMessage);
-            }
+		} else {
+			return;
+		}
+	}
 
-        } else {
-            return;
-        }
-    }
+	// futile attempt to clean the code up. checks for existing dictionary and
+	// sets keys equal to the keys in the dictionary
+	private void loadExistingKeys() {
+		if (Util.fileExists(dictionary.getFilename())) {
+			try {
+				keys = new LinkedHashSet<String>(dictionary.loadKeys());
+				System.out.println("Keys loaded from existing dictionary: "
+						+ keys.toString()); // seems to work
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			keys = new LinkedHashSet<String>();
+		}
+	}
 
-    // what to do when a message from somebody is sent to the channel
-    @Override
-    public void onMessage(String channel, String sender, String login,
-            String hostname, String message) {
-        String replyMessage = buildReply(message);
-        if (replyMessage.equals(null))
-            return;
-        sendMessage(channel, replyMessage);
-    }
+	public void associateWords() {
 
-    private String buildReply(String message) {
-        String replyMessage;
-        String randomWord = null;
-        processMessage(message);
-        int numWords = keys.size();
-        if (numWords == 0)
-            return null;
-        int item = new Random().nextInt(numWords);
-        int i = 0;
-        for (String element : keys) {
-            if (i == item) {
-                randomWord = element;
-                break;
-            }
-            i++;
-        }
-        return randomWord;
+	}
 
-    }
+	// what to do when a message from somebody is sent to the channel
+	@Override
+	public void onMessage(String channel, String sender, String login,
+			String hostname, String message) {
+		String replyMessage = null;
+		try {
+			replyMessage = buildReply(message);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if (replyMessage.equals(null))
+			return;
+		sendMessage(channel, replyMessage);
+	}
 
-    // what the main method should call to get the bot going
-    public void beginServerConnection() {
-        try {
-            this.connect(settings.getField(1));
-        } catch (IOException | IrcException e) {
-            System.out.println(e);
-        }
-    }
+	private String buildReply(String message) throws FileNotFoundException, IOException {
+		String replyMessage;
+		String randomWord = null;
+		processMessage(message);
+		int numWords = keys.size();
+		if (numWords == 0)
+			return null;
+		int item = new Random().nextInt(numWords);
+		int i = 0;
+		for (String element : keys) {
+			if (i == item) {
+				randomWord = element;
+				break;
+			}
+			i++;
+		}
+		return randomWord;
 
-    // what to do after successfully connecting to the server
-    // currently, join the channel defined in the cfg file after connecting
-    @Override
-    public void onConnect() {
-        try {
-            this.joinChannel(settings.getField(2));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+	}
 
-    // the main reason for using loadName is to avoid having the constructor
-    // handle an error not relevant to it (getField throws
-    // FileNotFoundException) because it's making a new file
-    private String loadName(UserCfg settings) {
-        String name = null;
-        try {
-            name = settings.getField(0);
-        } catch (IOException n) {
-            System.out.println(n);
-        }
-        return name;
-    }
+	// what the main method should call to get the bot going
+	public void beginServerConnection() {
+		try {
+			this.connect(settings.getField(1));
+		} catch (IOException | IrcException e) {
+			System.out.println(e);
+		}
+	}
 
-    // when a message is sent to the channel, we have to pick out the garbage
-    // and get the data we are looking for, which is words.
-    private void processMessage(String message) {
-        currentWords = new ArrayList<String>();
-        String word;
-        // get each word, or at least what we think is a word, in the line
-        String[] splitWords = message.trim().split(" +");
-        for (int size = splitWords.length, i = 0; i < size; i++) {
-            if (splitWords[i].equals("") || splitWords[i].contains("[^a-zA-Z]"))
-                continue;
-            word = splitWords[i].trim().replaceAll("[^a-zA-Z]", "")
-                    .toLowerCase();
-            if (word.equals(""))
-                continue; // when we do replaceAll("[^a-zA-Z]", "") and it's
-                          // just garbage text like a semicolon it will still be
-                          // added as a blank character, and we dont want that
-            currentWords.add(word);
-            keys.add(word);
-            if (!currentWords.isEmpty()) {
-                System.out.println("Words: " + currentWords.get(i)); // for
-                                                                     // testing
-            }
-        }
-        for (String element : keys) {
-            if (element.contains("\\s+")) {
-                keys.remove(element);
-                continue;
-            }
-            System.out.println("Keys: " + element); // for testing
-        }
-        dictionary.save(keys);
-    }
+	// what to do after successfully connecting to the server
+	// currently, join the channel defined in the cfg file after connecting
+	@Override
+	public void onConnect() {
+		try {
+			this.joinChannel(settings.getField(2));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// the main reason for using loadName is to avoid having the constructor
+	// handle an error not relevant to it (getField throws
+	// FileNotFoundException) because it's making a new file
+	private String loadName(UserCfg settings) {
+		String name = null;
+		try {
+			name = settings.getField(0);
+		} catch (IOException n) {
+			System.out.println(n);
+		}
+		return name;
+	}
+
+	// when a message is sent to the channel, we have to pick out the garbage
+	// and get the data we are looking for, which is words.
+	private void processMessage(String message) throws FileNotFoundException, IOException {
+		currentWords = new ArrayList<String>();
+		String word;
+		// get each word, or at least what we think is a word, in the line
+		String[] getWords = message.trim().split("\\s+");
+		for (String element : getWords) {
+			// getting the word
+			word = element.trim().replaceAll("[^\\w]", "").toLowerCase();
+			// if it's not a letter ignore it
+			if (word.equals("") || word.contains("[^\\w]")) {
+				continue;
+			}
+			// add it as one of the words in the current message
+			currentWords.add(word);
+			// add it to the list of keys, it's a set so there wont be
+			// duplicates
+			keys.add(word);
+			dictionary.addKey(word);
+		}
+		int size=currentWords.size();
+		for(int i=0; i<size; i++){
+			word=currentWords.get(i);
+			if(i!=0){
+				dictionary.addLink(currentWords.get(i-1), word);
+			}
+		}
+		dictionary.clearQueue();
+	}
 }
