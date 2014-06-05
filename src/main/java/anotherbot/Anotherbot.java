@@ -65,6 +65,8 @@ public class Anotherbot extends PircBot {
                 "#thesewingcircle");
         dictionary = new Dictionary("dictionary.txt");
         this.setName(loadName(settings));
+        loadExistingKeys();
+        loadKeyValues();
     }
 
     // constructor for using offline mode
@@ -99,6 +101,8 @@ public class Anotherbot extends PircBot {
         this.setName(loadName(settings)); // for the sake of consistency, load
         // this from the cfg file and dont
         // take it from nick
+        loadExistingKeys();
+        loadKeyValues();
     }
 
     // what the main method should call to get the bot going
